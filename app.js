@@ -7,33 +7,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeButton = document.querySelector('.close-button');
     let guides = [];
 
-    Promise.all([
-        fetch('data/Docker_on_Ubuntu.json').then(res => res.json()),
-        fetch('data/containerd_on_RHEL_8.10.json').then(res => res.json()),
-        fetch('data/OpenSearch_on_Helm.json').then(res => res.json()),
-        fetch('data/ArgoCD_Installation.json').then(res => res.json()),
-        fetch('data/Calico_on_OnPrem_K8s_Installation.json').then(res => res.json()),
-        fetch('data/MetalLB_Installation.json').then(res => res.json()),
-        fetch('data/MinIO_Installation.json').then(res => res.json()),
-        fetch('data/Kafka_AirGapped_Helm_Installation.json').then(res => res.json()),
-        fetch('data/MinIO_K8s_Installation.json').then(res => res.json()),
-        fetch('data/Apache_Flink_Installation.json').then(res => res.json()),
+    loadAllGuides();
 
-        fetch('data/Nginx_AirGapped_Helm_Installation.json').then(res => res.json()),
-        fetch('data/Pinot_on_K8s_Installation.json').then(res => res.json()),
-        fetch('data/Airflow_on_K8s_Installation.json').then(res => res.json()),
-        fetch('data/Helm_Usage_Guide.json').then(res => res.json()),
-        fetch('data/Ingress_Service_Provisioning.json').then(res => res.json()),
-        fetch('data/OpenSearch_Utilization_Manual.json').then(res => res.json()),
-        fetch('data/KVM_K8s_Installation.json').then(res => res.json()),
-        fetch('data/MySQL_on_K8s_Installation.json').then(res => res.json()),
-        fetch('data/Oracle_on_K8s_Installation.json').then(res => res.json())
-    ])
-        .then(data => {
-            guides = data;
+    async function loadAllGuides() {
+        try {
+            const response = await fetch('data/guides.json');
+            const fileList = await response.json();
+            
+            const promises = fileList.map(filename => 
+                fetch(`data/${filename}`).then(res => res.json())
+            );
+            
+            const guidesData = await Promise.all(promises);
+            guides = guidesData;
             renderGuides(guides);
-        })
-        .catch(error => console.error('Error fetching or parsing data:', error));
+        } catch (error) {
+            console.error('Error loading guides:', error);
+        }
+    }
 
     function renderGuides(guidesToRender) {
         guidesContainer.innerHTML = '';
