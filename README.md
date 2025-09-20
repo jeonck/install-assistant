@@ -6,7 +6,7 @@
 
 아래 URL을 통해 설치 가이드를 확인할 수 있습니다:
 
-[https://jeonck.github.io/installation-assistant/](https://jeonck.github.io/installation-assistant/)
+[https://jeonck.github.io/install-assistant/](https://jeonck.github.io/installation-assistant/)
 
 ## 포함된 가이드
 
