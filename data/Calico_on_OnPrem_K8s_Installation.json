@@ -1,0 +1,30 @@
+{
+    "title": "Calico on On-Premise Kubernetes Installation",
+    "description": "A step-by-step guide to installing Calico on an on-premise Kubernetes cluster using the Tigera Operator.",
+    "steps": [
+        {
+            "text": "Prerequisites",
+            "description": "Before you begin, ensure you have the following:\n*   A functional Kubernetes cluster (version 1.25 or higher is generally recommended).\n*   `kubectl` command-line tool installed and configured to communicate with your cluster.\n*   Necessary firewall rules opened on your cluster nodes: BGP (TCP 179) and VXLAN (UDP 4789) if using VXLAN encapsulation.\n*   Determine your Kubernetes pod network CIDR. Calico defaults to `192.168.0.0/16`, but you can customize this."
+        },
+        {
+            "text": "Install the Tigera Operator and Custom Resource Definitions (CRDs)",
+            "description": "The Tigera Operator manages the Calico installation. First, apply the operator's manifest, which includes the necessary CRDs.",
+            "command": "kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/tigera-operator.yaml"
+        },
+        {
+            "text": "Download and Customize Calico Custom Resources",
+            "description": "Next, download the custom resources that define your Calico installation. You can customize these before applying them. If your Kubernetes cluster uses a pod CIDR other than `192.168.0.0/16`, you might need to adjust the `CALICO_IPV4POOL_CIDR` variable within the `calico-config` ConfigMap in this file.",
+            "command": "curl -O https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/custom-resources.yaml"
+        },
+        {
+            "text": "Create the Calico Installation Manifest",
+            "description": "Apply the (potentially customized) `custom-resources.yaml` to your cluster to install Calico.",
+            "command": "kubectl create -f custom-resources.yaml"
+        },
+        {
+            "text": "Verify the Installation",
+            "description": "Monitor the `calico-system` namespace to ensure all Calico pods are running. You should see pods like `calico-node` and `calico-kube-controllers` in a `Running` state. You can also check the status of Calico nodes.",
+            "command": "watch kubectl get pods -n calico-system\nkubectl get nodes -o wide"
+        }
+    ]
+}

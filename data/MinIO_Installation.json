@@ -1,0 +1,23 @@
+{
+    "title": "MinIO Installation (Docker Quick Start)",
+    "description": "A quick start guide to installing MinIO using Docker.",
+    "steps": [
+        {
+            "text": "Ensure Docker is installed",
+            "description": "If you don't have Docker installed, you'll need to install it first. You can find instructions on the official Docker website."
+        },
+        {
+            "text": "Run MinIO using Docker",
+            "description": "Open your terminal or command prompt and execute the following command to pull the MinIO image and run a standalone MinIO server. This command maps port 9000 (for the S3 API) and 9001 (for the MinIO Console) from the container to your host machine. `/data` is the directory inside the container where MinIO will store its data. `--console-address \":9001\"` specifies that the MinIO Console will be available on port 9001.",
+            "command": "docker run -p 9000:9000 -p 9001:9001 quay.io/minio/minio server /data --console-address \":9001\""
+        },
+        {
+            "text": "Access the MinIO Console",
+            "description": "Once the Docker container is running, you can access the MinIO Console (a web-based object browser) by opening your web browser and navigating to `http://127.0.0.1:9001`."
+        },
+        {
+            "text": "Log in",
+            "description": "The default root credentials for the MinIO deployment are `minioadmin` for both the access key and the secret key."
+        }
+    ]
+}

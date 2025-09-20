@@ -1,0 +1,35 @@
+{
+    "title": "OpenSearch 활용 매뉴얼",
+    "description": "OpenSearch Dev Tools에서 적용 가능한 JSON flexible ingest pipeline 설정 및 사용법에 대한 매뉴얼입니다. (참조: https://opensearch.org/docs/latest/ingest-pipelines/processors/json/)",
+    "steps": [
+        {
+            "text": "로그 파싱 Ingest Pipeline (message 필드)",
+            "description": "`message` 필드를 JSON으로 파싱하고, 실패 시 원본 텍스트를 유지하는 Ingest Pipeline을 설정합니다.",
+            "code": "PUT _ingest/pipeline/log_parsing_message_json_flexible\n{\n  \"description\": \"Parse message as JSON if possible, else leave it as is\",\n  \"processors\": [\n    {\n      \"json\": {\n        \"field\": \"message\",\n        \"target_field\": \"message_json\",\n        \"add_to_root\": false,\n        \"ignore_failure\": true \n      }\n    }\n  ]\n}"
+        },
+        {
+            "text": "인덱스 템플릿 설정 (fluentd_template)",
+            "description": "`fluentd-aip-*` 및 `logstash-aks-ais-*` 패턴을 가진 인덱스에 `log_parsing_message_json_flexible` 파이프라인을 기본으로 적용하는 인덱스 템플릿을 설정합니다.",
+            "code": "PUT _index_template/fluentd_template\n{\n  \"index_patterns\": [\"fluentd-aip-*\", \"logstash-aks-ais-*\"], \n  \"template\": {\n    \"settings\": {\n      \"index.default_pipeline\": \"log_parsing_message_json_flexible\"\n    }\n  },\n  \"priority\": 1\n}"
+        },
+        {
+            "text": "로그 파싱 Ingest Pipeline (record.message 필드)",
+            "description": "`record.message` 필드를 JSON으로 파싱하고, 실패 시 원본 텍스트를 유지하는 Ingest Pipeline을 설정합니다.",
+            "code": "PUT _ingest/pipeline/log_parsing_record.message_json_flexible\n{\n  \"description\": \"Parse record.message as JSON if possible, else leave it as is\",\n  \"processors\": [\n    {\n      \"json\": {\n        \"field\": \"record.message\",\n        \"target_field\": \"record.message_json\",\n        \"add_to_root\": false,\n        \"ignore_failure\": true \n      }\n    }\n  ]\n}"
+        },
+        {
+            "text": "json 프로세서 설명",
+            "description": "`json` 프로세서는 다음 옵션을 가집니다:\n- `field`: 파싱할 대상 필드를 지정합니다. (예: \"message\")\n- `target_field`: 파싱된 결과를 저장할 필드를 지정합니다. (예: \"message_json\")\n- `add_to_root`: `false`로 설정하면 파싱된 결과를 루트 필드에 추가하지 않고 `target_field`에 저장합니다.\n- `ignore_failure`: `true`로 설정하면 파싱에 실패해도 에러를 발생시키지 않고 다음 단계로 넘어갑니다. 이때 원본 필드는 그대로 유지됩니다.\n더 많은 프로세서 타입은 다음을 참조하십시오: https://opensearch.org/docs/latest/ingest-pipelines/processors/index-processors/"
+        },
+        {
+            "text": "동작 예시 (파싱 가능한 경우)",
+            "description": "입력된 `message` 필드가 JSON 문자열인 경우, `message_json` 필드에 파싱된 JSON 객체가 저장됩니다.",
+            "code": "// 입력된 message 필드:\n{\n  \"message\": \"{\\\"key1\\\": \\\"value1\\\", \\\"key2\\\": \\\"value2\\\"}\"\n}\n\n// 파싱 후 결과:\n{\n  \"message\": \"{\\\"key1\\\": \\\"value1\\\", \\\"key2\\\": \\\"value2\\\"}\",\n  \"message_json\": {\n    \"key1\": \"value1\",\n    \"key2\": \"value2\"\n  }\n}"
+        },
+        {
+            "text": "동작 예시 (파싱 불가능한 경우)",
+            "description": "입력된 `message` 필드가 JSON 문자열이 아닌 경우, `message_json` 필드는 생성되지 않고 원본 `message` 필드는 그대로 유지됩니다.",
+            "code": "// 입력된 message 필드:\n{\n  \"message\": \"This is not a JSON string.\"\n}\n\n// 파싱 후 결과:\n{\n  \"message\": \"This is not a JSON string.\"\n  // message_json 필드는 생성되지 않음\n}"
+        }
+    ]
+}

@@ -1,0 +1,66 @@
+{
+    "title": "Kubernetes에 MySQL 설치 절차서",
+    "description": "Kubernetes 클러스터에 MySQL을 설치하고 설정하는 단계별 가이드입니다. Helm 차트와 Persistent Volume Claim (PVC)을 활용합니다.",
+    "steps": [
+        {
+            "text": "네임스페이스 생성",
+            "description": "Kubernetes 클러스터 내에서 MySQL을 격리된 환경에서 실행하기 위해 `mysql`이라는 네임스페이스를 생성합니다.",
+            "command": "kubectl create namespace mysql"
+        },
+        {
+            "text": "Persistent Volume Claim (PVC) 생성",
+            "description": "MySQL 데이터 저장을 위한 PVC를 생성합니다. `storageClassName`과 `storage` 용량을 환경에 맞게 조정하십시오.",
+            "code": "apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: data-mysql-0\n  namespace: mysql\nspec:\n  accessModes:\n    - ReadWriteOnce\n  resources:\n    requests:\n      storage: 100Gi # 필요한 용량으로 변경\n  storageClassName: ceph-rbd # 사용하려는 스토리지 클래스 이름으로 변경"
+        },
+        {
+            "text": "PVC 생성 명령어",
+            "description": "위의 YAML 파일을 `pvc.yaml`로 저장한 후, 해당 명령어로 PVC를 생성합니다.",
+            "command": "kubectl apply -f pvc.yaml"
+        },
+        {
+            "text": "Helm 저장소 추가 및 업데이트",
+            "description": "Bitnami의 Helm 차트를 추가하고, 최신 차트 정보를 업데이트합니다. Helm은 Kubernetes 애플리케이션을 관리하는 패키지 매니저입니다.",
+            "command": "helm repo add bitnami https://charts.bitnami.com/bitnami\nhelm repo update"
+        },
+        {
+            "text": "MySQL 설치",
+            "description": "`mysql`이라는 이름으로 MySQL을 설치합니다. `auth.rootPassword`는 강력한 비밀번호로 변경하고, `primary.service.type` 및 `primary.persistence.existingClaim`을 환경에 맞게 설정합니다.",
+            "command": "helm install mysql -n mysql \\\n  --set auth.rootPassword=<YOUR_ROOT_PASSWORD> \\\n  --set primary.service.type=LoadBalancer \\\n  --set primary.persistence.existingClaim=data-mysql-0 \\\n  bitnami/mysql"
+        },
+        {
+            "text": "Helm 차트 값 확인",
+            "description": "Bitnami MySQL 차트의 기본 값을 `values.yaml` 파일로 저장합니다. 이 파일은 나중에 사용자 정의 설정을 적용하는 데 유용합니다.",
+            "command": "helm show values bitnami/mysql > values.yaml"
+        },
+        {
+            "text": "비밀번호 가져오기",
+            "description": "설치된 MySQL의 root 비밀번호를 Kubernetes 비밀에서 가져와서 디코딩합니다.",
+            "command": "kubectl get secret --namespace mysql mysql -o jsonpath=\"{.data.mysql-root-password}\" | base64 -d"
+        },
+        {
+            "text": "MySQL 접속 (서버 내부에서)",
+            "description": "MySQL 클라이언트를 사용하여 root 계정으로 MySQL 서버에 접속합니다. 비밀번호 입력이 필요합니다.",
+            "command": "mysql -u root -p"
+        },
+        {
+            "text": "root 계정에 모든 호스트에서 접속 허용 (선택 사항)",
+            "description": "root 계정이 모든 호스트에서 접속할 수 있도록 권한을 부여합니다. 보안상 권장되지 않으며, 특정 IP만 허용하는 것을 고려하십시오.",
+            "command": "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;"
+        },
+        {
+            "text": "특정 IP만 허용 (권장)",
+            "description": "특정 IP 주소에서만 root 계정으로 접속할 수 있도록 권한을 부여합니다. `<ALLOWED_IP_ADDRESS>`를 허용할 실제 IP 주소로 변경하십시오.",
+            "command": "GRANT ALL PRIVILEGES ON *.* TO 'root'@'<ALLOWED_IP_ADDRESS>' WITH GRANT OPTION;"
+        },
+        {
+            "text": "권한 적용",
+            "description": "변경된 권한을 적용합니다.",
+            "command": "FLUSH PRIVILEGES;"
+        },
+        {
+            "text": "MySQL 접속 (외부에서)",
+            "description": "외부에서 MySQL 서버에 접속하기 위해 호스트 IP와 함께 MySQL 클라이언트를 사용합니다. `<MYSQL_SERVICE_EXTERNAL_IP>`를 MySQL 서비스의 외부 IP 주소로 변경하십시오.",
+            "command": "mysql -h <MYSQL_SERVICE_EXTERNAL_IP> -uroot -p"
+        }
+    ]
+}

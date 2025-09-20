@@ -1,0 +1,31 @@
+{
+    "title": "ArgoCD Installation (Application Version: v3.1, Helm Chart Version: 8.5.0)",
+    "description": "A step-by-step guide to installing ArgoCD using Helm. Note: ArgoCD application versions and Helm chart versions are distinct. This guide uses Helm chart version 8.5.0, which deploys ArgoCD application version v3.1.",
+    "steps": [
+        {
+            "text": "Add the ArgoCD Helm repository.",
+            "description": "This command adds the official ArgoCD Helm chart repository to your Helm configuration.",
+            "command": "helm repo add argo https://argoproj.github.io/argo-helm"
+        },
+        {
+            "text": "Update your Helm repositories.",
+            "description": "This command fetches the latest charts from all your configured repositories, including the newly added ArgoCD repository.",
+            "command": "helm repo update"
+        },
+        {
+            "text": "Create a namespace for ArgoCD.",
+            "description": "It's a good practice to install applications in their own dedicated namespace.",
+            "command": "kubectl create namespace argocd"
+        },
+        {
+            "text": "Install the ArgoCD Helm chart.",
+            "description": "This command installs ArgoCD into the `argocd` namespace. You can replace `my-argocd` with your desired release name.",
+            "command": "helm install my-argocd argo/argo-cd -n argocd"
+        },
+        {
+            "text": "Customize installation with values.yaml (Optional)",
+            "description": "For production deployments, it is highly recommended to create a `values.yaml` file to customize your ArgoCD configuration. Below is an example `values.yaml` demonstrating common configurations. Replace placeholder values like `argocd.example.com` and the bcrypt hashed password with your actual values.",
+            "code": "# Enable High Availability for Argo CD components\n# This typically requires at least 3 worker nodes for Redis HA.\nredis-ha:\n  enabled: true\n\ncontroller:\n  replicas: 1 # Controller usually runs as a single replica, even in HA mode\n\nserver:\n  autoscaling:\n    enabled: true\n    minReplicas: 2\n    maxReplicas: 5\n    targetCPUUtilizationPercentage: 80\n  ingress:\n    enabled: true\n    annotations:\n      kubernetes.io/ingress.class: nginx\n      nginx.ingress.kubernetes.io/force-ssl-redirect: \"true\"\n      nginx.ingress.kubernetes.io/backend-protocol: \"HTTPS\"\n    hosts:\n      - argocd.example.com # Replace with your domain\n    paths:\n      - /\n    pathType: Prefix\n    tls:\n      - hosts:\n          - argocd.example.com # Replace with your domain\n        secretName: argocd-server-tls # This secret must exist and contain your TLS certificate\n\nrepoServer:\n  autoscaling:\n    enabled: true\n    minReplicas: 2\n    maxReplicas: 5\n    targetCPUUtilizationPercentage: 80\n  # Resource limits for the repo-server\n  resources:\n    requests:\n      cpu: 100m\n      memory: 128Mi\n    limits:\n      cpu: 500m\n      memory: 512Mi\n\napplicationSet:\n  replicas: 2 # Recommended for HA\n\n# Configure initial admin password (hashed)\n# Note: When deploying via an Argo CD Application CR, define this under helm.values, not helm.parameters,\n# to avoid variable substitution issues with '$' characters in the hash. [3]\nconfigs:\n  secret:\n    argocdServerAdminPassword: \"$2a$10$H1a30nMr9v2QE2nkyz0BoOD2J0I6FQFMtHS0csEg12RBZzfRuuoE6\" # Replace with your bcrypt hashed password\n\n# Define resource limits and requests for other components if needed\n# For example, for the Argo CD Dex server:\ndex:\n  resources:\n    requests:\n      cpu: 50m\n      memory: 64Mi\n    limits:\n      cpu: 200m\n      memory: 256Mi\n\n# Disable creation of Custom Resource Definitions (CRDs) if they are managed separately [3]\ncrds:\n  install: true # Set to false if you manage CRDs outside of the Helm chart\n\n# Global settings\nglobal:\n  image:\n    repository: quay.io/argoproj/argocd\n    tag: v2.10.0 # Specify the desired Argo CD version\n    pullPolicy: IfNotPresent\n"
+        }
+    ]
+}

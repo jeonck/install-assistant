@@ -1,0 +1,54 @@
+{
+    "title": "Kubernetes에 Kueue 설치 절차서",
+    "description": "Kubernetes 클러스터에서 Cloud-native Queue 시스템을 구축하기 위한 Kueue 설치 및 활용 가이드입니다. BIM5D 변환 자동화 파이프라인과 같은 병렬 Job 관리에 유용합니다. (참고: https://kueue.sigs.k8s.io/docs/)",
+    "steps": [
+        {
+            "text": "배경 및 Kueue 소개",
+            "description": "BIM5D 변환 자동화 파이프라인에서 가용 리소스 내에서 최대한 변환 Job을 수행하고, 추가 요청은 큐에 쌓아두었다가 처리하기 위해 Kueue를 활용합니다. Kueue는 Kubernetes 환경에서 Cloud-native Queue 시스템을 구축할 수 있도록 돕습니다."
+        },
+        {
+            "text": "Kueue 설치 (YAML)",
+            "description": "YAML 파일을 사용하여 Kueue를 한 번에 설치할 수 있습니다. 이 방법은 특정 버전의 Kueue를 빠르게 배포할 때 유용합니다.",
+            "command": "kubectl apply --server-side -f https://github.com/kubernetes-sigs/kueue/releases/download/v0.13.2/manifests.yaml"
+        },
+        {
+            "text": "Kueue 설치 (Helm)",
+            "description": "Helm을 사용하여 Kueue를 설치할 수 있으며, 특정 릴리스 버전을 명시하여 설치할 수 있습니다. 이는 버전 관리가 필요한 경우에 유용합니다.",
+            "command": "helm install kueue oci://registry.k8s.io/kueue/charts/kueue  --version=0.13.2 --namespace  kueue-system  --create-namespace --wait --timeout 300s"
+        },
+        {
+            "text": "샘플 LocalQueue 생성",
+            "description": "Kueue가 Job을 관리할 로컬 큐를 생성합니다. `clusterQueue`는 이 로컬 큐가 속할 클러스터 큐의 이름을 지정합니다.",
+            "code": "apiVersion: kueue.x-k8s.io/v1beta1\nkind: LocalQueue\nmetadata:\n  name: sample-queue\n  namespace: default\nspec:\n  clusterQueue: cluster-queue # cluster queue name"
+        },
+        {
+            "text": "샘플 ClusterQueue 생성",
+            "description": "클러스터 전체의 리소스 할당을 관리하는 클러스터 큐를 생성합니다. `namespaceSelector`를 비워두면 모든 네임스페이스에서 사용 가능하며, `resourceGroups`에서 CPU와 메모리 할당량을 정의합니다.",
+            "code": "apiVersion: kueue.x-k8s.io/v1beta1\nkind: ClusterQueue\nmetadata:\n  name: cluster-queue\nspec:\n  namespaceSelector: {} # Available to all namespaces\n  resourceGroups:\n    - coveredResources: [\"cpu\", \"memory\"]\n      flavors:\n        - name: \"default-flavor\"\n          resources:\n            - name: cpu\n              nominalQuota: 2         # Queue에 쌓이는 것을 보고 싶어서 CPU 2개 한도로 제한\n            - name: memory\n              nominalQuota: 1Gi       # 메모리 1Gi 한도"
+        },
+        {
+            "text": "샘플 ResourceFlavor 생성",
+            "description": "Kueue가 사용할 수 있는 노드 리소스의 특성을 정의하는 ResourceFlavor를 생성합니다. 여기서는 `kubernetes.io/os: linux` 레이블이 있는 노드를 대상으로 합니다.",
+            "code": "apiVersion: kueue.x-k8s.io/v1beta1\nkind: ResourceFlavor\nmetadata:\n  name: default-flavor\nspec:\n  nodeLabels:\n    kubernetes.io/os: linux"
+        },
+        {
+            "text": "샘플 CronJob 생성",
+            "description": "Kueue의 동작을 테스트하기 위한 샘플 Python CronJob을 생성합니다. `kueue.x-k8s.io/queue-name: sample-queue` 레이블을 통해 `sample-queue`에 Job이 제출되도록 합니다. 여러 개의 CronJob을 생성하여 큐잉 동작을 확인할 수 있습니다.",
+            "code": "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: sample-python-cronjob-1\n  namespace: default\nspec:\n  schedule: \"*/1 * * * *\"\n  concurrencyPolicy: Forbid\n  jobTemplate:\n    spec:\n      suspend: false\n      template:\n        metadata:\n          labels:\n            kueue.x-k8s.io/queue-name: sample-queue\n        spec:\n          containers:\n            - name: python-job\n              image: python:3.10\n              command: [\"python\", \"-c\", \"import time; print('Hello from Kueue!'); time.sleep(20)\"]\n              resources:\n                requests:\n                  cpu: 1\n                  memory: 256Mi\n          restartPolicy: Never\n---\napiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: sample-python-cronjob-2\n  namespace: default\nspec:\n  schedule: \"*/1 * * * *\"\n  concurrencyPolicy: Forbid\n  jobTemplate:\n    spec:\n      suspend: false\n      template:\n        metadata:\n          labels:\n            kueue.x-k8s.io/queue-name: sample-queue\n        spec:\n          containers:\n            - name: python-job\n              image: python:3.10\n              command: [\"python\", \"-c\", \"import time; print('Hello from Kueue!'); time.sleep(20)\"]\n              resources:\n                requests:\n                  cpu: 1\n                  memory: 256Mi\n          restartPolicy: Never\n---\napiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: sample-python-cronjob-3\n  namespace: default\nspec:\n  schedule: \"*/1 * * * *\"\n  concurrencyPolicy: Forbid\n  jobTemplate:\n    spec:\n      suspend: false\n      template:\n        metadata:\n          labels:\n            kueue.x-k8s.io/queue-name: sample-queue\n        spec:\n          containers:\n            - name: python-job\n              image: python:3.10\n              command: [\"python\", \"-c\", \"import time; print('Hello from Kueue!'); time.sleep(20)\"]\n              resources:\n                requests:\n                  cpu: 1\n                  memory: 256Mi\n          restartPolicy: Never"
+        },
+        {
+            "text": "결과 분석 및 LocalQueue 상태 확인",
+            "description": "CPU 할당량이 2로 제한되어 있으므로, 1 CPU를 요청하는 CronJob 2개만 동시에 실행되고 나머지는 `pending workloads`에 쌓입니다. 앞선 Job이 끝나면 다음 Job이 실행되는 것을 확인할 수 있습니다. 1초 간격으로 LocalQueue 상태를 확인하는 명령어를 사용합니다.",
+            "command": "watch -n 1 kubectl get localqueues -A"
+        },
+        {
+            "text": "BIM5D 변환 Job을 위한 Cad Converter Kit Service 컨테이너 만들기",
+            "description": "BIM5D 변환 자동화 파이프라인을 위해 Cad Converter Kit Service 컨테이너를 생성합니다. `kit-app-template`을 사용하여 서비스를 생성하고, `test.py` 파일을 추가하여 CLI로 Cad Converter를 실행할 수 있도록 합니다. 필요한 dependency를 `[dependencies]` 섹션에 추가합니다.\n\n**test.py 원본:**\n```python\nimport time\nimport sys\n\nif __name__ == \"__main__\":\n    print(f\"Starting CAD conversion job with arguments: {sys.argv[1:]}\")\n    time.sleep(10) # Simulate work\n    print(\"CAD conversion job finished.\")\n```\n\n**kit에 dependency 추가:**\n```\n[dependencies]\n\"omni.kit.telemetry\" = {}\n\"omni.kit.converter.common\" = {}\n\"skt.revit_convert_extension\" = { order = 10000 }\n\"omni.kit.commands\" = {}\n\"omni.services.core\" = {}\n\"omni.services.transport.server.http\" = {}\n\"omni.usd\" = {}\n# Cad Converter 추가\n\"omni.services.convert.cad\" = {}\n\"omni.kit.converter.hoops_core\" = {}\n```",
+            "code": "# kit-app-template에서 kit service 생성\n./repo.sh template new \n\n# 컨테이너 이미지 빌드\n./repo.sh build # kit app template 소스 빌드\n./repo.sh package --container # container image build\n\n# 컨테이너 레지스트리(여기 예시에서는 ACR)에 push\ndocker tag kit_app_template <YOUR_REGISTRY_SERVER>/<YOUR_REGISTRY_PATH>/cad_converter_kit:0.1.0\ndocker push <YOUR_REGISTRY_SERVER>/<YOUR_REGISTRY_PATH>/cad_converter_kit:0.1.0"
+        },
+        {
+            "text": "Job 생성 및 실행 결과 분석",
+            "description": "Job을 생성하여 kit service를 띄우고 kit 명령어로 cad convert를 실행합니다. 리소스 (cpu:2, mem:1G)를 설정하면 하나의 Job만 허용하고 나머지는 pending 처리되는 것을 확인할 수 있습니다. 현재 Cad Converter가 동작하지 않는 경우, `hoops` 라이브러리 관련 버전 이슈일 수 있으므로 최신 kit SDK 버전에서 테스트가 필요합니다.\n\n**cadconverter-job.yaml 원본:**\n```yaml\napiVersion: batch/v1\nkind: Job\nmetadata:\n  name: cad-converter-job-1\n  namespace: default\nspec:\n  template:\n    metadata:\n      labels:\n        kueue.x-k8s.io/queue-name: sample-queue\n    spec:\n      containers:\n        - name: cad-converter\n          image: <YOUR_REGISTRY_SERVER>/<YOUR_REGISTRY_PATH>/cad_converter_kit:0.1.0 # 업로드한 이미지 경로로 변경\n          command: [\"/bin/bash\", \"-c\", \"/kit/kit-app-template test.py --input /data/input.cad --output /data/output.usd\"] # 실제 변환 명령어로 변경\n          resources:\n            requests:\n              cpu: 1\n              memory: 512Mi\n            limits:\n              cpu: 1\n              memory: 512Mi\n      restartPolicy: Never\n```\n\n**실행 결과:**\n3개의 job을 동시에 실행시킨 뒤 queue도 확인한 결과 아래와 같이 정상적으로 동작\n리소스를 cpu:2, mem:1G로 설정하였으므로 하나의 job만 허용하고 나머지는 pending 처리\n\n**cad converter 동작하지 않는 이유:**\n`hoops` 라이브러리에서 `is_format_supported`, `get_instance`, `HoopsOptions` 없다고 나옴.\n버전 이슈인 것 같아 최신 kit SDK 버전에서 테스트 필요.\n\n**hoops_core log 원본:**\n```\n[error] hoops_core: is_format_supported not found\n[error] hoops_core: get_instance not found\n[error] hoops_core: HoopsOptions not found\n```"
+        }
+    ]
+}

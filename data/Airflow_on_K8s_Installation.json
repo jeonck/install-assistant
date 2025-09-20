@@ -1,0 +1,44 @@
+{
+    "title": "Kubernetes에 Apache Airflow 설치 (Helm)",
+    "description": "공식 Apache Airflow Helm 차트를 사용하여 Kubernetes 클러스터에 Apache Airflow를 설치하는 단계별 가이드입니다.",
+    "steps": [
+        {
+            "text": "전제 조건 확인",
+            "description": "Apache Airflow를 배포하기 전에 다음 사항을 확인하십시오: Kubernetes 클러스터 (1.19+ 권장), kubectl, Helm 3.x, Docker (선택 사항), 영구 스토리지 (권장), 데이터베이스 (선택 사항)."
+        },
+        {
+            "text": "Apache Airflow Helm 저장소 추가",
+            "description": "공식 Apache Airflow Helm 차트 저장소를 Helm 클라이언트에 추가하고 업데이트하여 최신 차트 정보를 가져옵니다.",
+            "command": "helm repo add apache-airflow https://airflow.apache.org && helm repo update"
+        },
+        {
+            "text": "Airflow를 위한 Kubernetes 네임스페이스 생성",
+            "description": "Kubernetes 환경을 정리하기 위해 Airflow를 자체 전용 네임스페이스에 배포하는 것이 좋습니다.",
+            "command": "kubectl create namespace airflow"
+        },
+        {
+            "text": "사용자 정의 Values 파일 (`values.yaml`) 생성",
+            "description": "Helm 차트에는 기본 구성이 제공되지만, Airflow 배포를 사용자 정의해야 할 것입니다. `values.yaml` 파일을 생성하여 이러한 기본값을 재정의합니다. 이 파일은 실행기 유형 (예: `KubernetesExecutor`, `CeleryExecutor`), 데이터베이스 설정, 리소스 할당 등을 구성할 수 있도록 합니다. 다음은 일반적인 구성에 초점을 맞춘 `values.yaml` 스니펫 예시입니다. 필요에 따라 수정하십시오.",
+            "code": "executor: \"KubernetesExecutor\"\nconfig:\n  core:\n    dags_are_paused_at_creation: 'True'\n    load_examples: 'False'\n    max_active_runs_per_dag: 3\n  webserver:\n    expose_config: 'True'\n  scheduler:\n    dag_dir_list_interval: 60\n  kubernetes:\n    namespace: airflow\n    worker_container_repository: apache/airflow\n    worker_container_tag: 2.7.2\npostgresql:\n  enabled: true\n  auth:\n    username: airflow\n    password: airflow123\n    database: airflow\nwebserver:\n  replicas: 2\n  service:\n    type: LoadBalancer\ndags:\n  gitSync:\n    enabled: true\n    repo: \"https://github.com/your-org/your-dags-repo.git\"\n    branch: \"main\""
+        },
+        {
+            "text": "Helm을 사용하여 Apache Airflow 설치",
+            "description": "`values.yaml` 파일이 준비되면 `helm install` 명령을 사용하여 Kubernetes 클러스터에 Airflow를 배포합니다.",
+            "command": "helm install airflow apache-airflow/airflow --namespace airflow -f values.yaml"
+        },
+        {
+            "text": "설치 확인",
+            "description": "설치 명령이 완료되면 모든 Airflow 구성 요소가 Kubernetes 클러스터에서 올바르게 실행되는지 확인합니다.",
+            "command": "kubectl get pods -n airflow && kubectl get svc -n airflow"
+        },
+        {
+            "text": "Airflow 웹 UI 액세스",
+            "description": "Airflow UI에 액세스하는 방법은 `values.yaml`의 `webserver.service.type` 구성에 따라 다릅니다. LoadBalancer를 사용하는 경우 `kubectl get svc -n airflow`를 실행하고 `airflow-webserver` 서비스의 외부 IP 주소를 찾으십시오. 로컬 테스트의 경우 포트 포워딩을 사용할 수 있습니다. 그런 다음 브라우저에서 `http://localhost:8080`으로 이동합니다. 기본 로그인 자격 증명은 종종 사용자 이름과 비밀번호 모두 `admin`입니다.",
+            "command": "kubectl port-forward svc/airflow-webserver 8080:8080 -n airflow"
+        },
+        {
+            "text": "DAG 배포 (GitSync 사용 시)",
+            "description": "`values.yaml`에서 GitSync를 구성한 경우, Airflow는 지정된 Git 저장소에서 DAG를 자동으로 가져옵니다. DAG가 Helm 차트에 구성된 대로 저장소 내의 올바른 경로에 있는지 확인하십시오."
+        }
+    ]
+}

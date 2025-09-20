@@ -1,0 +1,31 @@
+{
+    "title": "MinIO on Kubernetes Installation",
+    "description": "A step-by-step guide to installing MinIO on Kubernetes using Helm.",
+    "steps": [
+        {
+            "text": "Add the Bitnami Helm repository.",
+            "description": "This command adds the Bitnami chart repository to your Helm configuration, allowing you to access their charts.",
+            "command": "helm repo add bitnami https://charts.bitnami.com/bitnami"
+        },
+        {
+            "text": "Update your Helm repositories.",
+            "description": "This command fetches the latest charts from all configured repositories.",
+            "command": "helm repo update"
+        },
+        {
+            "text": "Create a Kubernetes namespace for MinIO.",
+            "description": "It's good practice to deploy applications into their own namespaces for better organization and isolation.",
+            "command": "kubectl create namespace minio"
+        },
+        {
+            "text": "Install the MinIO Helm chart.",
+            "description": "This command installs MinIO into the `minio` namespace. You should replace `YOUR_MINIO_ROOT_USER` and `YOUR_MINIO_ROOT_PASSWORD` with strong, secure credentials for your MinIO instance. The `--generate-name` flag will create a unique release name for your MinIO deployment.",
+            "command": "helm install --namespace minio --set auth.rootUser=YOUR_MINIO_ROOT_USER --set auth.rootPassword=YOUR_MINIO_ROOT_PASSWORD --generate-name bitnami/minio"
+        },
+        {
+            "text": "Verify the deployment.",
+            "description": "You can check the status of the deployment.",
+            "command": "kubectl get pods -n minio"
+        }
+    ]
+}

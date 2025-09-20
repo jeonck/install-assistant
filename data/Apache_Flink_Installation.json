@@ -1,0 +1,25 @@
+{
+    "title": "Apache Flink on Kubernetes Installation (Helm)",
+    "description": "A step-by-step guide to installing Apache Flink on Kubernetes using the Flink Kubernetes Operator and Helm.",
+    "steps": [
+        {
+            "text": "Add the Apache Flink Kubernetes Operator Helm repository.",
+            "description": "To install Apache Flink on Kubernetes using Helm, the recommended approach is to first install the Apache Flink Kubernetes Operator, which then manages Flink deployments. Add the Apache Flink Kubernetes Operator Helm repository.",
+            "command": "helm repo add flink-kubernetes-operator https://downloads.apache.org/flink/flink-kubernetes-operator-1.7.0/"
+        },
+        {
+            "text": "Update your Helm repositories to fetch the latest charts.",
+            "description": "This command fetches the latest charts from all your configured repositories.",
+            "command": "helm repo update"
+        },
+        {
+            "text": "Install the Flink Kubernetes Operator Helm chart.",
+            "description": "This command installs the operator in the default namespace. If you want to install it in a specific namespace (e.g., `flink-operator`), you can use: `helm install flink-kubernetes-operator flink-kubernetes-operator/flink-kubernetes-operator --namespace flink-operator --create-namespace`.",
+            "command": "helm install flink-kubernetes-operator flink-kubernetes-operator/flink-kubernetes-operator"
+        },
+        {
+            "text": "Deploy Flink Applications",
+            "description": "After the Flink Kubernetes Operator is installed, you can deploy Flink applications by creating `FlinkDeployment` custom resources in your Kubernetes cluster. The operator will then manage the lifecycle of your Flink JobManagers and TaskManagers."
+        }
+    ]
+}

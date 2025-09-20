@@ -1,0 +1,43 @@
+{
+    "title": "Kubernetes에 Apache Pinot 설치 (Helm)",
+    "description": "Helm 차트와 Apache Pinot Kubernetes Operator를 사용하여 Kubernetes 클러스터에 Apache Pinot을 설치하는 단계별 가이드입니다.",
+    "steps": [
+        {
+            "text": "전제 조건 확인",
+            "description": "Apache Pinot을 배포하기 전에 다음 사항을 확인하십시오: 실행 중인 Kubernetes 클러스터, kubectl, helm."
+        },
+        {
+            "text": "Apache Pinot Helm 저장소 추가",
+            "description": "Apache Pinot 프로젝트는 사전 패키지된 Helm 차트를 제공합니다. 다음 명령을 사용하여 Helm 저장소를 추가합니다.",
+            "command": "helm repo add pinot https://raw.githubusercontent.com/apache/pinot/master/helm && helm repo update"
+        },
+        {
+            "text": "Pinot을 위한 네임스페이스 생성",
+            "description": "Pinot 배포를 위한 Kubernetes 네임스페이스를 생성합니다.",
+            "command": "kubectl create ns pinot-quickstart"
+        },
+        {
+            "text": "Helm으로 Pinot 설치",
+            "description": "클라우드 공급업체 또는 로컬 환경에 적합한 StorageClass를 지정하는 것이 중요합니다. 예를 들어, AWS의 경우 'gp2', GCP의 경우 'pd-ssd' 또는 'standard', Azure의 경우 'AzureDisk', Docker Desktop의 경우 'hostpath'를 사용하십시오. 데이터 서빙 파일 시스템으로 blob 스토리지를 마운트하는 것을 피하고 대신 디스크 스타일의 영구 볼륨을 사용하십시오. <YOUR_STORAGE_CLASS_NAME>을 실제 환경에 맞는 StorageClass 이름으로 교체하십시오.",
+            "command": "helm install pinot pinot/pinot -n pinot-quickstart --set cluster.name=pinot --set server.replicaCount=2 --set storage.data.storageClassName=<YOUR_STORAGE_CLASS_NAME> --set storage.data.size=10Gi"
+        },
+        {
+            "text": "배포 상태 확인",
+            "description": "Pinot 배포의 상태를 확인합니다.",
+            "command": "kubectl get all -n pinot-quickstart"
+        },
+        {
+            "text": "Kafka 배포 (선택 사항)",
+            "description": "Apache Pinot은 실시간 데이터 수집을 위해 Apache Kafka와 함께 작동하는 경우가 많습니다. Kafka를 배포하려면 Bitnami Helm 차트를 사용할 수 있습니다.",
+            "command": "helm repo add bitnami https://charts.bitnami.com/bitnami && helm install -n pinot-quickstart kafka bitnami/kafka --set replicas=1,zookeeper.image.tag=latest,listeners.client.protocol=PLAINTEXT"
+        },
+        {
+            "text": "구성 및 리소스 할당 고려",
+            "description": "컨테이너 리소스, JVM 힙 설정, 딥 스토리지 구성 등을 고려하여 Pinot 배포를 최적화합니다."
+        },
+        {
+            "text": "Pinot Kubernetes Operator 사용 (고급)",
+            "description": "보다 고급 관리 및 운영 기능을 위해서는 Pinot Kubernetes Operator 사용을 고려하십시오."
+        }
+    ]
+}

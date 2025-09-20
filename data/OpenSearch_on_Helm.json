@@ -1,0 +1,21 @@
+{
+    "title": "OpenSearch on Helm",
+    "description": "A step-by-step guide to installing OpenSearch using Helm.",
+    "steps": [
+        {
+            "text": "Add the OpenSearch Helm repository.",
+            "description": "This command adds the official OpenSearch Helm chart repository to your Helm configuration.",
+            "command": "helm repo add opensearch https://opensearch-project.github.io/helm-charts/"
+        },
+        {
+            "text": "Update your Helm repositories to fetch the latest charts.",
+            "description": "This ensures that you have the most recent information about the available charts, including the latest OpenSearch versions.",
+            "command": "helm repo update"
+        },
+        {
+            "text": "Install the OpenSearch Helm chart.",
+            "description": "Replace <YOUR_STRONG_PASSWORD> with a strong password for the OpenSearch initial admin user. This command installs OpenSearch with a release name of my-opensearch.",
+            "command": "helm install my-opensearch opensearch/opensearch --set opensearch.password=\"<YOUR_STRONG_PASSWORD>\""
+        }
+    ]
+}

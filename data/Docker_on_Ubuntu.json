@@ -1,0 +1,53 @@
+{
+    "title": "Docker on Ubuntu",
+    "description": "A step-by-step guide to installing Docker on Ubuntu.",
+    "steps": [
+        {
+            "text": "Update your apt package index.",
+            "description": "This command updates the list of available packages and their versions."
+        },
+        {
+            "command": "sudo apt update",
+            "description": "This command downloads the package information from all configured sources."
+        },
+        {
+            "text": "Install packages to allow apt to use a repository over HTTPS.",
+            "description": "These packages are required to use a repository over HTTPS."
+        },
+        {
+            "command": "sudo apt install ca-certificates curl gnupg lsb-release",
+            "description": "This command installs the required packages."
+        },
+        {
+            "text": "Add Docker’s official GPG key.",
+            "description": "This adds Docker’s official GPG key to ensure the authenticity of the Docker packages."
+        },
+        {
+            "command": "sudo mkdir -p /etc/apt/keyrings\ncurl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
+            "description": "This command creates a directory for the key and adds the GPG key."
+        },
+        {
+            "text": "Set up the Docker APT repository.",
+            "description": "This command adds the Docker repository to your system’s software sources."
+        },
+        {
+            "command": "echo \n  \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \n  $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+            "description": "This command adds the Docker repository."
+        },
+        {
+            "text": "Update the package index again with the Docker repository.",
+            "description": "This command updates the package index with the newly added Docker repository."
+        },
+        {
+            "command": "sudo apt update",
+            "description": "This command downloads the package information from all configured sources."
+        },
+        {
+            "text": "Install Docker Engine, containerd, and Docker Compose.",
+            "description": "This command installs the latest version of Docker Engine and its components."
+        },
+        {
+            "command": "sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin"
+        }
+    ]
+}

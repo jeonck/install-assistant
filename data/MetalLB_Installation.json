@@ -1,0 +1,36 @@
+{
+    "title": "MetalLB Installation",
+    "description": "A step-by-step guide to installing MetalLB on Kubernetes, including IP address pool and L2 advertisement configurations.",
+    "steps": [
+        {
+            "text": "Install MetalLB",
+            "description": "First, install MetalLB to your Kubernetes cluster. You can install it via Helm or by applying manifests directly. For simplicity, we'll assume MetalLB is already installed or you're using a method like Helm to install it.",
+            "command": "kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml"
+        },
+        {
+            "text": "Configure IP Address Pool (ippool.yaml)",
+            "description": "Define the range of IP addresses that MetalLB can assign to services. Replace the example IP ranges with your desired network configuration.",
+            "code": "apiVersion: metallb.io/v1beta1\nkind: IPAddressPool\nmetadata:\n  name: my-ip-pool\n  namespace: metallb-system\nspec:\n  addresses:\n    - 192.168.10.0/24\n    - 192.168.20.1-192.168.20.5\n  autoAssign: true"
+        },
+        {
+            "text": "Apply IP Address Pool Configuration",
+            "description": "Apply the `ippool.yaml` file to your Kubernetes cluster.",
+            "command": "kubectl apply -f ippool.yaml"
+        },
+        {
+            "text": "Configure L2 Advertisement (l2adv.yaml)",
+            "description": "Specify how MetalLB advertises the IP addresses from the pool. This example applies to 'my-ip-pool'.",
+            "code": "apiVersion: metallb.io/v1beta1\nkind: L2Advertisement\nmetadata:\n  name: my-l2-advertisement\n  namespace: metallb-system\nspec:\n  ipAddressPools:\n  - my-ip-pool"
+        },
+        {
+            "text": "Apply L2 Advertisement Configuration",
+            "description": "Apply the `l2adv.yaml` file to your Kubernetes cluster.",
+            "command": "kubectl apply -f l2adv.yaml"
+        },
+        {
+            "text": "Verify the Installation",
+            "description": "Check if the `metallb-system` namespace exists, verify that all MetalLB components are running, and check the `IPAddressPools` custom resources to ensure your pool is recognized.",
+            "command": "kubectl get ns metallb-system\nkubectl get pods -n metallb-system\nkubectl get IPAddressPools -n metallb-system"
+        }
+    ]
+}

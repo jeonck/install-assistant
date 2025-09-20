@@ -1,0 +1,64 @@
+{
+    "title": "Kubernetes에 Oracle Database 설치 절차서",
+    "description": "Oracle Database Operator를 사용하여 Kubernetes 클러스터에 Oracle Database를 설치하고 관리하는 단계별 가이드입니다. (참고: https://github.com/oracle/oracle-database-operator/blob/main/README.md)",
+    "steps": [
+        {
+            "text": "1. cert-manager 설치",
+            "description": "Oracle Database Operator는 인증서 관리를 위해 cert-manager를 사용합니다. 다음 명령어를 사용하여 cert-manager를 설치합니다.",
+            "command": "kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.1/cert-manager.yaml"
+        },
+        {
+            "text": "2. Oracle Database Operator 설치",
+            "description": "Oracle Database Operator를 Kubernetes 클러스터에 설치합니다.",
+            "command": "kubectl apply -f https://raw.githubusercontent.com/oracle/oracle-database-operator/main/oracle-database-operator.yaml"
+        },
+        {
+            "text": "3. 라이선스 사전 동의",
+            "description": "Oracle Database Enterprise Edition 이미지는 다운로드 전에 Oracle Container Registry 웹사이트에서 라이선스 동의를 반드시 해야 합니다. 동의하지 않으면 인증이 성공해도 이미지를 받을 수 없습니다. 다음 URL을 방문하여 라이선스에 동의하십시오: https://container-registry.oracle.com/ 또는 https://container-registry.oracle.com/ords/f?p=113:4:1208492103420:::::"
+        },
+        {
+            "text": "4. 도커 로그인",
+            "description": "Enterprise Edition 또는 Standard Edition 이미지를 사용하는 경우 Oracle Container Registry에 로그인해야 합니다.",
+            "command": "docker login container-registry.oracle.com"
+        },
+        {
+            "text": "5. 이미지 다운로드",
+            "description": "Oracle Database 이미지를 다운로드합니다. Free 버전은 라이선스 동의 없이 사용 가능하며, Enterprise Edition은 라이선스가 필요합니다. `--platform=linux/amd64` 옵션을 사용하여 특정 플랫폼 이미지를 다운로드합니다.",
+            "command": "# Oracle Database 23c Free 버전 (라이센스 동의 없이 사용 가능)\ndocker pull --platform=linux/amd64 container-registry.oracle.com/database/free:latest\n\n# 또는 Enterprise Edition (라이센스 필요)\n# docker pull --platform=linux/amd64 container-registry.oracle.com/database/enterprise:19.3.0-ee"
+        },
+        {
+            "text": "6. 이미지를 레지스트리에 업로드",
+            "description": "다운로드한 Oracle Database 이미지를 개인 컨테이너 레지스트리 (예: Azure Container Registry)에 업로드합니다. `<YOUR_REGISTRY_SERVER>`와 `<YOUR_REGISTRY_PATH>`를 실제 환경에 맞게 변경하십시오.",
+            "command": "# Free version\ndocker tag container-registry.oracle.com/database/free:latest <YOUR_REGISTRY_SERVER>/<YOUR_REGISTRY_PATH>/database-free:latest\ndocker push <YOUR_REGISTRY_SERVER>/<YOUR_REGISTRY_PATH>/database-free:latest\n\n# Enterprise version 예시\n# docker login <YOUR_REGISTRY_SERVER>\n# docker tag container-registry.oracle.com/database/enterprise:19.3.0.0 <YOUR_REGISTRY_SERVER>/<YOUR_REGISTRY_PATH>/database-enterprise:19.3.0.0\n# docker push <YOUR_REGISTRY_SERVER>/<YOUR_REGISTRY_PATH>/database-enterprise:19.3.0.0"
+        },
+        {
+            "text": "7. 샘플 YAML 다운로드",
+            "description": "Oracle Database Operator에서 제공하는 샘플 YAML 파일을 다운로드합니다. Free 버전의 단일 인스턴스 데이터베이스 예시입니다.",
+            "command": "wget https://raw.githubusercontent.com/oracle/oracle-database-operator/main/config/samples/sidb/singleinstancedatabase_free.yaml"
+        },
+        {
+            "text": "8. 관리자 비밀번호 시크릿 생성",
+            "description": "데이터베이스 관리자 비밀번호를 위한 Kubernetes Secret을 생성합니다. `oracle_pwd` 값을 강력한 비밀번호로 변경하십시오.",
+            "command": "kubectl create secret generic oracle-db-admin-secret  --from-literal=oracle_pwd='MyStrongPass!' -n oracle"
+        },
+        {
+            "text": "9. 다운로드 YAML 수정",
+            "description": "다운로드한 `singleinstancedatabase_free.yaml` 파일을 필요에 맞게 수정합니다. 특히 `image.pullFrom`, `persistence.size`, `persistence.storageClass` 등을 환경에 맞게 조정해야 합니다. `adminPassword.secretName`은 위에서 생성한 시크릿 이름과 일치해야 합니다.",
+            "code": "apiVersion: database.oracle.com/v4\nkind: SingleInstanceDatabase\nmetadata:\n  name: oracle-db\n  namespace: oracle \nspec:\n  edition: free\n  adminPassword:\n    secretName: oracle-db-admin-secret\n  image:\n    pullFrom: <YOUR_REGISTRY_SERVER>/<YOUR_REGISTRY_PATH>/database-free:latest # 업로드한 이미지 경로로 변경\n    prebuiltDB: true\n  persistence:\n    size: 50Gi # 필요한 용량으로 변경\n    storageClass: \"managed-csi\" # 사용 가능한 스토리지 클래스로 변경\n    accessMode: \"ReadWriteOnce\"\n  replicas: 1"
+        },
+        {
+            "text": "10. 배포",
+            "description": "Oracle Database를 배포할 네임스페이스를 생성하고, 수정된 YAML 파일을 적용하여 데이터베이스를 배포합니다.",
+            "command": "kubectl create ns oracle\nkubectl apply -f singleinstancedatabase_free.yaml"
+        },
+        {
+            "text": "11. Oracle Database 연결",
+            "description": "배포된 Oracle Database에 외부에서 접속하는 방법입니다. TNS (Transparent Network Substrate) 방식을 주로 사용하며, `tnsnames.ora` 파일을 통해 설정됩니다. 서비스의 외부 IP와 포트 정보를 확인한 후 SQL*Plus, Oracle SQL Developer, DBeaver 등 클라이언트를 사용하여 접속합니다.",
+            "code": "# 서비스 정보 확인\nkubectl get svc -n oracle\n\n# 예시: SQL*Plus 접속\nsqlplus system/<비밀번호>@<EXTERNAL_IP>:1521/FREEPDB1\n\n# 예시: JDBC 접속 문자열\njdbc:oracle:thin:@<EXTERNAL_IP>:1521/FREEPDB1\n\n# 예시: SQL Developer 설정\n# Host: <EXTERNAL_IP>\n# Port: 1521\n# Service name: FREEPDB1\n# Username: system\n# Password: <비밀번호>"
+        },
+        {
+            "text": "12. 접속 오류 시 확인 사항",
+            "description": "접속에 문제가 발생할 경우 다음 사항들을 확인하십시오: 방화벽/보안그룹 (1521 포트 개방), 서비스 타입 (LoadBalancer 또는 NodePort), DB Listener 상태, Kubernetes 네트워크 정책."
+        }
+    ]
+}

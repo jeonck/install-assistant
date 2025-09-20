@@ -1,0 +1,60 @@
+{
+    "title": "Kafka Air-Gapped Helm Installation",
+    "description": "A detailed guide to installing Kafka using Helm in an air-gapped environment, leveraging the Bitnami Helm chart and `helm dt` plugin.",
+    "steps": [
+        {
+            "text": "Phase 1: Prepare in a Connected Environment",
+            "description": "In an environment with internet access, you will download the Helm chart and all necessary Docker images."
+        },
+        {
+            "text": "Install Helm",
+            "description": "If you don't have Helm installed, follow the official Helm documentation."
+        },
+        {
+            "text": "Install `helm dt` Plugin (Bitnami Distribution Tooling)",
+            "description": "The `helm dt` plugin simplifies the process of packaging Helm charts with their container images for air-gapped environments, especially for Bitnami charts.",
+            "command": "helm plugin install https://github.com/bitnami/helm-dt"
+        },
+        {
+            "text": "Add Bitnami Helm Repository",
+            "description": "Add and update the Bitnami Helm repository.",
+            "command": "helm repo add bitnami https://charts.bitnami.com/bitnami\nhelm repo update"
+        },
+        {
+            "text": "Wrap the Kafka Helm Chart and Images",
+            "description": "This command will download the Kafka Helm chart and all its dependent container images, packaging them into a single tarball (`.wrap.tgz` file). Replace `<chart-version>` with the specific version of the Kafka chart you want to install (e.g., `32.4.3`). You can find available versions using `helm search repo bitnami/kafka`.",
+            "command": "helm dt wrap oci://registry-1.docker.io/bitnamicharts/kafka --version <chart-version>"
+        },
+        {
+            "text": "Phase 2: Transfer to Air-gapped Environment",
+            "description": "Transfer the `kafka-<chart-version>.wrap.tgz` file to your air-gapped environment using a secure method (e.g., USB drive, internal network transfer)."
+        },
+        {
+            "text": "Phase 3: Deploy in Air-gapped Environment",
+            "description": "In your air-gapped environment, you will need a private Docker registry accessible by your Kubernetes cluster."
+        },
+        {
+            "text": "Ensure Private Docker Registry is Available",
+            "description": "Your Kubernetes cluster must be configured to pull images from this private registry. You might need to configure `ImagePullSecrets` or ensure the registry is insecure if not using TLS."
+        },
+        {
+            "text": "Install `helm dt` Plugin (if not already present)",
+            "description": "If you don't have internet access in the air-gapped environment, you'll need to transfer the `helm-dt` plugin binary as well and install it manually."
+        },
+        {
+            "text": "Unwrap the Tarball into Your Private Registry",
+            "description": "This command will extract the Helm chart and push all the contained Docker images to your private registry. It will also modify the chart's image references to point to your private registry. Replace `<your-private-registry>` with the hostname and port of your private Docker registry (e.g., `my-private-registry.local:5000`).",
+            "command": "helm dt unwrap kafka-<chart-version>.wrap.tgz <your-private-registry>/helm-charts/ --yes"
+        },
+        {
+            "text": "Install Kafka Helm Chart",
+            "description": "Now you can install the Kafka Helm chart from your private registry. Replace `my-kafka` with your desired release name, `<your-private-registry>` with your private registry hostname, and `<chart-version>` with the chart version you wrapped. You might need to customize the installation further by providing a `values.yaml` file.",
+            "command": "helm install my-kafka oci://<your-private-registry>/helm-charts/kafka --version <chart-version> --namespace kafka --create-namespace"
+        },
+        {
+            "text": "Example `values.yaml` snippet (if needed)",
+            "description": "To ensure all image references correctly point to your private registry, you might explicitly set `image.registry` in your `values.yaml` if the `dt unwrap` command didn't fully handle all cases or if you have specific image paths.",
+            "code": "global:\n  imageRegistry: \"<your-private-registry>\""
+        }
+    ]
+}

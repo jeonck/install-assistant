@@ -1,0 +1,58 @@
+{
+    "title": "Nginx Ingress Controller Air-Gapped Helm Installation",
+    "description": "A detailed guide to installing Nginx Ingress Controller using Helm in an air-gapped environment.",
+    "steps": [
+        {
+            "text": "Step 1: On an Internet-Connected Machine",
+            "description": "First, you need to download the Helm chart and all necessary container images."
+        },
+        {
+            "text": "Add the Nginx Ingress Controller Helm repository.",
+            "description": "The official Nginx Ingress Controller Helm chart is hosted on `kubernetes.github.io/ingress-nginx`.",
+            "command": "helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx\nhelm repo update"
+        },
+        {
+            "text": "Download the Helm chart.",
+            "description": "Use `helm pull` to download the chart. The `--untar` flag will extract the chart's contents into a directory, which is useful for inspection. Replace `<chart-version>` with the desired version, e.g., `4.13.2`.",
+            "command": "helm pull ingress-nginx/ingress-nginx --version <chart-version> --untar"
+        },
+        {
+            "text": "Identify container images.",
+            "description": "Navigate into the downloaded chart directory and inspect the `values.yaml` file to find the container images used by the chart. Make a note of the full image names (e.g., `registry.k8s.io/ingress-nginx/controller:v1.9.4`). There might be other images for default backend or admission webhooks, so check the `values.yaml` thoroughly.",
+            "command": "grep -E \"repository:|tag:\" ingress-nginx/values.yaml"
+        },
+        {
+            "text": "Pull container images.",
+            "description": "For each identified image, pull it using a container runtime like Docker or Podman. Repeat for any other images found in `values.yaml`.",
+            "command": "docker pull registry.k8s.io/ingress-nginx/controller:v1.9.4"
+        },
+        {
+            "text": "Save images to a tar archive.",
+            "description": "Save the pulled images into a tar archive for easy transfer. You can combine multiple images into one tar.",
+            "command": "docker save -o all-ingress-nginx-images.tar image1:tag1 image2:tag2"
+        },
+        {
+            "text": "Transfer files.",
+            "description": "Copy the `ingress-nginx/` chart directory and the `*.tar` image files to your portable medium."
+        },
+        {
+            "text": "Step 2: On the Air-Gapped Environment",
+            "description": "Now, transfer the files to your air-gapped environment and proceed with the installation."
+        },
+        {
+            "text": "Load container images.",
+            "description": "Transfer the `*.tar` image files to your air-gapped environment. Then, load them into your local container registry or directly into the container runtime on your Kubernetes nodes. If you have a local container registry, load the images and then push them to your local registry. If you don't have a local container registry, you would need to load the images onto *each* Kubernetes node (not recommended for production).",
+            "command": "docker load -i ingress-nginx-controller.tar\ndocker tag registry.k8s.io/ingress-nginx/controller:v1.9.4 <your-local-registry>/ingress-nginx/controller:v1.9.4\ndocker push <your-local-registry>/ingress-nginx/controller:v1.9.4"
+        },
+        {
+            "text": "Modify Helm chart values.",
+            "description": "Navigate to the `ingress-nginx/` directory (the one you transferred) and edit the `values.yaml` file. You need to change the `controller.image.repository` to point to your local registry. If there are other images (e.g., for a default backend), modify their `repository` fields as well.",
+            "code": "# ingress-nginx/values.yaml\ncontroller:\n  image:\n    repository: <your-local-registry>/ingress-nginx/controller # Change this line\n    tag: v1.9.4\n    pullPolicy: IfNotPresent # Ensure this is set to IfNotPresent or Never"
+        },
+        {
+            "text": "Install the Helm chart.",
+            "description": "From the directory containing the `ingress-nginx/` chart, install it using Helm. This command installs the Nginx Ingress Controller using the local chart files and the modified `values.yaml`, which now references your local container images.",
+            "command": "helm install nginx-ingress ./ingress-nginx -n ingress-nginx --create-namespace"
+        }
+    ]
+}

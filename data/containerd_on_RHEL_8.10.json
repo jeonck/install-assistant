@@ -1,0 +1,31 @@
+{
+    "title": "containerd on RHEL 8.10",
+    "description": "A step-by-step guide to installing containerd on RHEL 8.10.",
+    "steps": [
+        {
+            "text": "Load Kernel Modules",
+            "description": "These modules are essential for container operations.",
+            "command": "sudo tee /etc/modules-load.d/containerd.conf <<EOF\noverlay\nbr_netfilter\nEOF\nsudo modprobe overlay\nsudo modprobe br_netfilter"
+        },
+        {
+            "text": "Add Docker Yum Repository",
+            "description": "The containerd.io package is typically available from the Docker Community Edition repository.",
+            "command": "sudo dnf install -y yum-utils\nsudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo"
+        },
+        {
+            "text": "Install containerd.io",
+            "description": "Install the containerd.io package.",
+            "command": "sudo dnf install -y containerd.io"
+        },
+        {
+            "text": "Configure cgroups",
+            "description": "Containerd needs to be configured to use the systemd cgroup driver.",
+            "command": "sudo containerd config default | sudo tee /etc/containerd/config.toml\nsudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml"
+        },
+        {
+            "text": "Enable and Start containerd",
+            "description": "Enable and start the containerd service.",
+            "command": "sudo systemctl enable --now containerd\nsudo systemctl restart containerd"
+        }
+    ]
+}
